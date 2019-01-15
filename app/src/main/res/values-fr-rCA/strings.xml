@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Météo</string>
+    <string name="text_temperature">%d°</string>
+    <string name="error_connectivity">Oups…pas de connection internet.</string>
+    <string name="error_server">Oups…pas de météo disponible. Veuillez essayer plus tard.</string>
+    <string name="text_retry">Réessayez</string>
+</resources>
