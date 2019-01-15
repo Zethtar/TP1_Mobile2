@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Weather</string>
+    <string name="text_temperature">%d°</string>
+    <string name="error_connectivity">Oups…no internet connection.</string>
+    <string name="error_server">Oups…no weather available. Try again later.</string>
+    <string name="text_retry">Retry</string>
+</resources>
