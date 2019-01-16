@@ -9,10 +9,6 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import ca.csf.mobile2.tp1.R
 
-//TODO's
-//-Land display is not implemented yet (need to add onRestoreInstance / onSaveInstance)
-//-Possibly make Weather a parcelable - To easily save it as parcelable
-//-Find a better way to sort what type of error in GetWeatherTask
 class WeatherActivity : AppCompatActivity(), GetWeatherTask.Listener {
 
     private lateinit var weatherPreviewImage : ImageView
@@ -22,6 +18,10 @@ class WeatherActivity : AppCompatActivity(), GetWeatherTask.Listener {
     private lateinit var errorImageView : ImageView
     private lateinit var errorTextView : TextView
     private lateinit var retryButton : Button
+
+    private var weather : Weather? = null
+    private var isConnectivityError : Boolean = false
+    private var isAnError : Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,9 +35,26 @@ class WeatherActivity : AppCompatActivity(), GetWeatherTask.Listener {
         errorTextView = findViewById(R.id.errorTextView)
         retryButton = findViewById(R.id.retryButton)
 
-        startGetWeatherTask()
+        if (savedInstanceState == null) {
+            startGetWeatherTask()
+        }
     }
 
+    override fun onSaveInstanceState(outState: Bundle? ) {
+        super.onSaveInstanceState(outState)
+        outState?.putParcelable(WEATHER_PARCEL, weather)
+        outState!!.putBoolean(IS_AN_ERROR_KEY, isAnError)
+        outState!!.putBoolean(IS_CONNECTIVITY_ERROR_KEY, isConnectivityError)
+    }
+
+    override fun onRestoreInstanceState(savedInstanceState: Bundle?) {
+        super.onRestoreInstanceState(savedInstanceState)
+        weather = savedInstanceState?.getParcelable(WEATHER_PARCEL)
+        isAnError = savedInstanceState!!.getBoolean(IS_AN_ERROR_KEY)
+        isConnectivityError = savedInstanceState!!.getBoolean(IS_CONNECTIVITY_ERROR_KEY)
+
+        setVisual()
+    }
     private fun startGetWeatherTask() {
         showProgressBar()
         setErrorWidgetsVisibility(View.INVISIBLE)
@@ -68,17 +85,52 @@ class WeatherActivity : AppCompatActivity(), GetWeatherTask.Listener {
         retryButton.visibility = visibility
     }
 
+    private fun setVisual()
+    {
+        if(isAnError) {
+            setValidWidgetsVisibility(View.INVISIBLE)
+            if(isConnectivityError){
+                showOperationFailedToConnect()
+            }
+            else{
+                showOperationReceivedJunkFromServer()
+            }
+        }
+        else {
+            setErrorWidgetsVisibility(View.INVISIBLE)
+
+            if (weather == null) {
+                showProgressBar()
+                setErrorWidgetsVisibility(View.INVISIBLE)
+                setValidWidgetsVisibility(View.INVISIBLE)
+            } else {
+                weatherPreviewImage.setImageResource(weather!!.type.imageID)
+                cityTextView.text = weather!!.city
+                temperatureTextView.text = weather!!.temperatureInCelsius.toString()
+
+                hideProgressBar()
+
+                setValidWidgetsVisibility(View.VISIBLE)
+            }
+        }
+    }
+
     override fun notifyOperationSuccessful(result: Weather) {
-        weatherPreviewImage.setImageResource(result.type.imageID)
-        cityTextView.text = result.city
-        temperatureTextView.text = result.temperatureInCelsius.toString()
+       weather = result
 
-        hideProgressBar()
+        setVisual()
 
-        setValidWidgetsVisibility(View.VISIBLE)
+        isAnError = false
     }
 
     override fun notifyOperationFailedToConnect() {
+        isConnectivityError = true
+        isAnError = true
+
+        showOperationFailedToConnect()
+    }
+
+    private fun showOperationFailedToConnect(){
         hideProgressBar()
 
         errorTextView.setText(R.string.error_connectivity)
@@ -87,6 +139,13 @@ class WeatherActivity : AppCompatActivity(), GetWeatherTask.Listener {
     }
 
     override fun notifyOperationReceivedJunkFromServer() {
+        isConnectivityError = false
+        isAnError = true
+
+        showOperationReceivedJunkFromServer()
+    }
+
+    private fun showOperationReceivedJunkFromServer(){
         hideProgressBar()
 
         errorTextView.setText(R.string.error_server)
@@ -96,5 +155,11 @@ class WeatherActivity : AppCompatActivity(), GetWeatherTask.Listener {
 
     fun onRetryButtonClick(androidView : View) {
         startGetWeatherTask()
+    }
+
+    companion object {
+        private const val WEATHER_PARCEL = "WEATHER"
+        private const val IS_AN_ERROR_KEY = "IS_AN_ERROR"
+        private const val IS_CONNECTIVITY_ERROR_KEY = "IS_CONNECTIVITY_ERROR"
     }
 }
